@@ -10,10 +10,10 @@ import time
 import threading
 import random
 
-import coapDefines          as d
-import coapException        as e
-import coapUtils            as u
-import coapMessage          as m
+from . import coapDefines          as d
+from . import coapException        as e
+from . import coapUtils            as u
+from . import coapMessage          as m
 
 class coapTransmitter(threading.Thread):
     '''
@@ -491,8 +491,8 @@ class coapTransmitter(threading.Thread):
 
         # send
         self.sendFunc(
-            destIp           = message['srcId'],
-            destPort         = message['srcPort'],
+            destIp           = message['srcId'],  #pylint: disable=E1126
+            destPort         = message['srcPort'],  #pylint: disable=E1126
             msg              = message,
         )
 

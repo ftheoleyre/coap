@@ -1,6 +1,5 @@
 import hashlib
 import logging
-from abc import ABCMeta
 
 import cbor
 import hkdf
@@ -10,11 +9,11 @@ import binascii
 import threading
 from Crypto.Cipher import AES
 
-import coapDefines as d
-import coapException as e
-import coapMessage as m
-import coapOption as o
-import coapUtils as u
+from . import coapDefines as d
+from . import coapException as e
+from . import coapMessage as m
+from . import coapOption as o
+from . import coapUtils as u
 
 
 class NullHandler(logging.Handler):
@@ -53,11 +52,11 @@ def protectMessage(context, version, code, options=[], payload=[], partialIV=Non
     plaintext += [code]
     plaintext += m.encodeOptions(optionsClassE)
     plaintext += m.encodePayload(payload)
-    plaintext = u.buf2str(plaintext)  # convert to string
+    plaintext = bytes(plaintext)  # convert to bytes
 
     # construct aad
 
-    requestSeq = partialIV.lstrip('\0')
+    requestSeq = partialIV.lstrip(b'\x00')
 
     requestKid = context.senderID if _isRequest(code) else context.recipientID
 
@@ -68,7 +67,7 @@ def protectMessage(context, version, code, options=[], payload=[], partialIV=Non
                         context.aeadAlgorithm.value,
                         requestKid,
                         requestSeq,
-                        u.buf2str(m.encodeOptions(optionsClassI)),
+                        bytes(m.encodeOptions(optionsClassI)),
                         )
 
     ciphertext = context.aeadAlgorithm.authenticateAndEncrypt(
@@ -88,7 +87,7 @@ def protectMessage(context, version, code, options=[], payload=[], partialIV=Non
         # code is always POST
         protectedCode = d.METHOD_POST
 
-    return (protectedCode, optionsClassI + optionsClassU, u.str2buf(ciphertext))
+    return (protectedCode, optionsClassI + optionsClassU, ciphertext)
 
 def unprotectMessage(context, version, code, options=[], ciphertext=[], partialIV=None):
     """
@@ -117,38 +116,37 @@ def unprotectMessage(context, version, code, options=[], ciphertext=[], partialI
 
     if _isRequest(code):
         requestKid = context.recipientID
-        if not context.replayWindowLookup(u.buf2int(u.str2buf(partialIV))):
+        if not context.replayWindowLookup(u.buf2int(partialIV)):
             raise e.oscoreError('Replay protection failed')
     else:
         requestKid = context.senderID
 
-    requestSeq = partialIV.lstrip('\0')
+    requestSeq = partialIV.lstrip(b'\x00')
 
     aad = _constructAAD(version,
                         context.aeadAlgorithm.value,
                         requestKid,
                         requestSeq,
-                        u.buf2str(m.encodeOptions(optionsClassI)),)
+                        bytes(m.encodeOptions(optionsClassI)),)
 
     nonce = _constructAeadNonce(context.aeadAlgorithm, partialIV, requestKid, context.commonIV)
 
     try:
         plaintext = context.aeadAlgorithm.authenticateAndDecrypt(
             aad=aad,
-            ciphertext=u.buf2str(ciphertext),
+            ciphertext=ciphertext,
             key=context.recipientKey,
             nonce=nonce)
 
-        plaintextBuf = u.str2buf(plaintext)
-        decryptedCode = plaintextBuf[0]
-        plaintextBuf = plaintext[1:]
+        decryptedCode = plaintext[0]
+        plaintext = plaintext[1:]
     except e.oscoreError:
         raise
 
     if _isRequest(code):
-        context.replayWindowUpdate(u.buf2int(u.str2buf(partialIV)))
+        context.replayWindowUpdate(u.buf2int(partialIV))
 
-    (innerOptions, payload) = m.decodeOptionsAndPayload(u.str2buf(plaintextBuf))
+    (innerOptions, payload) = m.decodeOptionsAndPayload(plaintext)
     # returns a tuple (decryptedCode, innerOptions, payload)
     return (decryptedCode, innerOptions, payload)
 
@@ -196,7 +194,7 @@ def getRequestSecurityParams(objectSecurityOption):
         context = objectSecurityOption.context
         newSequenceNumber = objectSecurityOption.context.getSequenceNumber()
         # convert sequence number to string that is the length of the IV
-        newSequenceNumber = u.buf2str(u.int2buf(newSequenceNumber, context.aeadAlgorithm.ivLength))
+        newSequenceNumber = bytes(u.int2buf(newSequenceNumber, context.aeadAlgorithm.ivLength))
         return (context, newSequenceNumber)
     else:
         return (None, None)
@@ -234,12 +232,12 @@ def _encodeCompressedCOSE(partialIV, kid, kidContext):
     buffer += [h << 4 | kidFlag << 3 | partialIVLen]  # flag byte
 
     if partialIVLen:
-        buffer += u.str2buf(partialIV)
+        buffer += partialIV
     if h:
         buffer += [len(kidContext)]
-        buffer += u.str2buf(kidContext)
+        buffer += kidContext
     if kidFlag:
-        buffer += u.str2buf(kid)
+        buffer += kid
 
     if buffer == [0]:
         return []
@@ -265,17 +263,18 @@ def _constructAeadNonce(aeadAlgorithm, piv, idPiv, commonIV):
 
     nonceLen = aeadAlgorithm.ivLength
 
-    pivBuf = u.str2buf(piv.lstrip('\0'))
-    idPivBuf = u.str2buf(idPiv)
+    pivBuf = piv.lstrip(b'\x00')
 
-    pivPadded = [0] * (5 - len(pivBuf)) + pivBuf
-    idPivPadded = [0] * (nonceLen - 6 - len(idPivBuf)) + idPivBuf
+    pivPadded = b'\x00' * (5 - len(pivBuf)) + pivBuf
+    idPivPadded = b'\x00' * (nonceLen - 6 - len(idPiv)) + idPiv
 
-    buf = [len(idPivBuf)] + idPivPadded + pivPadded
+    buf = bytes([len(idPiv)]) + idPivPadded + pivPadded
 
     assert len(buf) == nonceLen
 
-    return u.xorStrings(commonIV, u.buf2str(buf))
+    ret = u.xorBytes(commonIV, buf)
+
+    return ret
 
 def _constructAAD(version, aeadAlgorithm, requestKid, requestSeq, optionsSerialized):
     externalAad = cbor.dumps([
@@ -288,8 +287,8 @@ def _constructAAD(version, aeadAlgorithm, requestKid, requestSeq, optionsSeriali
 
     # from https://tools.ietf.org/html/draft-ietf-cose-msg-24#section-5.3
     encStructure = [
-        unicode('Encrypt0'),
-        '',  # an empty byte string
+        str('Encrypt0'),
+        bytes(),  # an empty byte string
         externalAad
     ]
 
@@ -320,10 +319,6 @@ def _isRequest(code):
         raise NotImplementedError()
 
 class CCMAlgorithm(object):
-    __metaclass__ = ABCMeta
-
-    # ======================== abstract members ================================
-
     @property
     def value(self):
         raise NotImplementedError
@@ -427,7 +422,7 @@ class SecurityContext:
             if 'masterSalt' in self.securityContext:
                 self.masterSalt = binascii.unhexlify(self.securityContext['masterSalt'])
             else:
-                self.masterSalt = ''
+                self.masterSalt = bytes()
 
             if 'idContext' in self.securityContext:
                 self.idContext = binascii.unhexlify(self.securityContext['idContext'])
@@ -441,7 +436,7 @@ class SecurityContext:
         self.commonIV = self._hkdfDeriveParameter(self.hashFunction,
                                                   self.masterSecret,
                                                   self.masterSalt,
-                                                  '',
+                                                  bytes(),
                                                   self.idContext,
                                                   self.aeadAlgorithm.value,
                                                   'IV',
@@ -519,7 +514,7 @@ class SecurityContext:
             id,
             idContext,
             algorithm,
-            unicode(type),  # encode as text string
+            str(type),  # encode as text string
             length
         ])
 
