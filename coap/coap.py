@@ -254,8 +254,6 @@ class coap(object):
             log.warning('malformed message {0}: {1}'.format(u.formatBuf(rawbytes),str(err)))
             return
             
-        print("receive, {0} methods {1}".format(message['code'],  d.METHOD_ALL))
-
         # dispatch message
         try:
             if   message['code'] in d.METHOD_ALL:
@@ -310,7 +308,6 @@ class coap(object):
                 # retrieve path
                 path = coapUri.options2path(options)
                 log.debug('path="{0}"'.format(path))
-                print('path="{0}"'.format(path))
 
                 # find resource that matches this path
                 resource = None
@@ -320,8 +317,7 @@ class coap(object):
                             resource = r
                             break
                 log.debug('resource={0}'.format(resource))
-                print('resource={0}'.format(resource))
-
+                
                 if not resource:
                     raise e.coapRcNotFound()
 
@@ -351,7 +347,9 @@ class coap(object):
                     elif message['code']==d.METHOD_PUT and d.METHOD_PUT in authorizedMethods:
                         (respCode,respOptions,respPayload) = resource.PUT(
                             options=options,
-                            payload=payload
+                            payload=payload,
+                            srcIp=srcIp,
+                            srcPort=srcPort
                         )
                     elif message['code']==d.METHOD_DELETE and d.METHOD_DELETE in authorizedMethods:
                         (respCode,respOptions,respPayload) = resource.DELETE(
@@ -385,7 +383,6 @@ class coap(object):
                     respOptions += [objectSecurity]
 
                 # if Stateless-Proxy option was present in the request echo it
-                print("options {0}".format(options))
                 for option in options:
                     if isinstance(option, o.StatelessProxy):
                         respOptions += [option]
@@ -450,7 +447,6 @@ class coap(object):
 
             # log
             log.warning(err)
-            print("erreuor rcaptured")
 
             # determine type of response packet
             if   message['type']==d.TYPE_CON:
@@ -483,7 +479,7 @@ class coap(object):
                 msg              = response,
             )
         except NoresponseException:
-            print("No response expected")
+            log.debug("No CoAP response expected for this request")
             
 
         except Exception as err:

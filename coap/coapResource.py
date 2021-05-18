@@ -25,7 +25,7 @@ class coapResource(object):
     def GET(self,options=[]):
         raise e.coapRcMethodNotAllowed()
     
-    def PUT(self,options=[],payload=None):
+    def PUT(self,options=[],payload=None,srcIp=None,srcPort=None):
         raise e.coapRcMethodNotAllowed()
     
     def POST(self,options=[],payload=None):
