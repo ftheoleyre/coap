@@ -20,4 +20,5 @@ test_report.xml
 # misc
 venv/*
 .idea
+openwsn_coap.egg-info/*
 

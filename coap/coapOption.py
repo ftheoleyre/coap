@@ -275,6 +275,24 @@ class StatelessProxy(coapOption):
 
     def getPayloadBytes(self):
         return self.opaqueValue
+        
+# === OPTION_NORESPONSE
+
+class Noresponse(coapOption):
+    def __init__(self, value):
+        # initialize parent
+        coapOption.__init__(self, d.OPTION_NORESPONSE, d.OSCORE_CLASS_U)
+
+        # store params
+        self.opaqueValue = value
+
+    def __repr__(self):
+        return 'Noresponse(value={0})'.format(self.opaqueValue)
+
+    def getPayloadBytes(self):
+        return self.opaqueValue
+
+
 #============================ functions =======================================
 
 def parseOption(message,previousOptionNumber):
@@ -381,6 +399,8 @@ def parseOption(message,previousOptionNumber):
         option = ProxyScheme(scheme=''.join([chr(b) for b in optionValue]))
     elif optionNumber==d.OPTION_NUM_STATELESSPROXY:
         option = StatelessProxy(value=optionValue)
+    elif optionNumber==d.OPTION_NORESPONSE:
+        option = Noresponse(value=optionValue)
     else:
         raise NotImplementedError('option {0} not implemented'.format(optionNumber))
     

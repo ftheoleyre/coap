@@ -24,6 +24,11 @@ import coapTransmitter
 from socketUdpDispatcher import socketUdpDispatcher
 from socketUdpReal       import socketUdpReal
 
+class NoresponseException(Exception):
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+
 class coap(object):
 
     def __init__(self,ipAddress='',udpPort=d.DEFAULT_UDP_PORT,testing=False,receiveCallback=None):
@@ -240,6 +245,7 @@ class coap(object):
 
         srcPort = sender[1]
 
+
         # parse messages
         try:
             message = m.parseMessage(rawbytes)
@@ -247,11 +253,14 @@ class coap(object):
         except e.messageFormatError as err:
             log.warning('malformed message {0}: {1}'.format(u.formatBuf(rawbytes),str(err)))
             return
+            
+        print("receive, {0} methods {1}".format(message['code'],  d.METHOD_ALL))
 
         # dispatch message
         try:
             if   message['code'] in d.METHOD_ALL:
                 # this is meant for a resource (request)
+
 
                 #==== decrypt message if encrypted
                 innerOptions = []
@@ -301,6 +310,7 @@ class coap(object):
                 # retrieve path
                 path = coapUri.options2path(options)
                 log.debug('path="{0}"'.format(path))
+                print('path="{0}"'.format(path))
 
                 # find resource that matches this path
                 resource = None
@@ -310,6 +320,7 @@ class coap(object):
                             resource = r
                             break
                 log.debug('resource={0}'.format(resource))
+                print('resource={0}'.format(resource))
 
                 if not resource:
                     raise e.coapRcNotFound()
@@ -374,10 +385,14 @@ class coap(object):
                     respOptions += [objectSecurity]
 
                 # if Stateless-Proxy option was present in the request echo it
+                print("options {0}".format(options))
                 for option in options:
                     if isinstance(option, o.StatelessProxy):
                         respOptions += [option]
                         break
+                    if isinstance(option, o.Noresponse):
+                        raise NoresponseException(0, "The client does not wait for a reply")
+
 
                 # build response packets and pass partialIV from the request for OSCORE's processing
                 response = m.buildMessage(
@@ -435,6 +450,7 @@ class coap(object):
 
             # log
             log.warning(err)
+            print("erreuor rcaptured")
 
             # determine type of response packet
             if   message['type']==d.TYPE_CON:
@@ -466,6 +482,9 @@ class coap(object):
                 destPort         = srcPort,
                 msg              = response,
             )
+        except NoresponseException:
+            print("No response expected")
+            
 
         except Exception as err:
             log.critical(traceback.format_exc())
