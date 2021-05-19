@@ -348,8 +348,8 @@ class coap(object):
                         (respCode,respOptions,respPayload) = resource.PUT(
                             options=options,
                             payload=payload,
-                            srcIp=srcIp,
-                            srcPort=srcPort
+                            #srcIp=srcIp,
+                            #srcPort=srcPort
                         )
                     elif message['code']==d.METHOD_DELETE and d.METHOD_DELETE in authorizedMethods:
                         (respCode,respOptions,respPayload) = resource.DELETE(
@@ -360,6 +360,8 @@ class coap(object):
                     else:
                         raise e.coapRcUnauthorized('Unauthorized method for the given resource')
                 except Exception as err:
+                    print("error: {0}".format(err))
+                    
                     if isinstance(err,e.coapRc):
                         raise
                     else:
