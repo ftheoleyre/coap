@@ -342,6 +342,9 @@ class coap(object):
                             options=options,
                             payload=payload
                         )
+                        for option in options:
+                            if isinstance(option, o.Noresponse):
+                                return
                     elif message['code']==d.METHOD_DELETE and d.METHOD_DELETE in authorizedMethods:
                         (respCode,respOptions,respPayload) = resource.DELETE(
                             options=options
@@ -377,8 +380,8 @@ class coap(object):
                 for option in options:
                     if isinstance(option, o.StatelessProxy):
                         respOptions += [option]
-                        break
 
+                        
                 # build response packets and pass partialIV from the request for OSCORE's processing
                 response = m.buildMessage(
                     msgtype          = responseType,
@@ -449,8 +452,7 @@ class coap(object):
             for option in options:
                 if isinstance(option, o.StatelessProxy):
                     errorOptions += [option]
-                    break
-
+   
             # build response packets
             response = m.buildMessage(
                 msgtype             = responseType,

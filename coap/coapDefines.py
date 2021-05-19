@@ -115,6 +115,7 @@ OPTION_NUM_BLOCK1                      = 27
 OPTION_NUM_PROXYURI                    = 35
 OPTION_NUM_PROXYSCHEME                 = 39
 OPTION_NUM_STATELESSPROXY              = 40 # experimental value
+OPTION_NORESPONSE                      = 41 # experimental value
 OPTION_NUM_ALL = [
     OPTION_NUM_IFMATCH,
     OPTION_NUM_URIHOST,
@@ -134,6 +135,7 @@ OPTION_NUM_ALL = [
     OPTION_NUM_PROXYSCHEME,
     OPTION_NUM_OSCORE,
     OPTION_NUM_STATELESSPROXY,
+    OPTION_NORESPONSE,
 ]
 
 # CoAP Content-Format Registry
