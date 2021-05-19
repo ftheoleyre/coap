@@ -21,3 +21,8 @@ test_report.xml
 venv/*
 .idea
 
+openwsn_coap.egg-info/dependency_links.txt
+openwsn_coap.egg-info/PKG-INFO
+openwsn_coap.egg-info/requires.txt
+openwsn_coap.egg-info/SOURCES.txt
+openwsn_coap.egg-info/top_level.txt
