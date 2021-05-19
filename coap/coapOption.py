@@ -292,7 +292,6 @@ class Noresponse(coapOption):
     def getPayloadBytes(self):
         return self.opaqueValue
 
-        
 #============================ functions =======================================
 
 def parseOption(message,previousOptionNumber):
@@ -400,7 +399,6 @@ def parseOption(message,previousOptionNumber):
     elif optionNumber==d.OPTION_NUM_STATELESSPROXY:
         option = StatelessProxy(value=optionValue)
     elif optionNumber==d.OPTION_NORESPONSE:
-        #raise NotImplementedError('option {0} not implemented -> todo'.format(optionNumber))
         option = Noresponse(value=optionValue)
     else:
         raise NotImplementedError('option {0} not implemented'.format(optionNumber))

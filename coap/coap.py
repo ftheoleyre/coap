@@ -24,6 +24,7 @@ import coapTransmitter
 from socketUdpDispatcher import socketUdpDispatcher
 from socketUdpReal       import socketUdpReal
 
+
 class coap(object):
 
     def __init__(self,ipAddress='',udpPort=d.DEFAULT_UDP_PORT,testing=False,receiveCallback=None):
@@ -342,9 +343,11 @@ class coap(object):
                             options=options,
                             payload=payload
                         )
+                        #noresponse option -> nothing to do
                         for option in options:
                             if isinstance(option, o.Noresponse):
                                 return
+                                
                     elif message['code']==d.METHOD_DELETE and d.METHOD_DELETE in authorizedMethods:
                         (respCode,respOptions,respPayload) = resource.DELETE(
                             options=options
@@ -380,7 +383,6 @@ class coap(object):
                 for option in options:
                     if isinstance(option, o.StatelessProxy):
                         respOptions += [option]
-
                         
                 # build response packets and pass partialIV from the request for OSCORE's processing
                 response = m.buildMessage(
@@ -452,7 +454,7 @@ class coap(object):
             for option in options:
                 if isinstance(option, o.StatelessProxy):
                     errorOptions += [option]
-   
+
             # build response packets
             response = m.buildMessage(
                 msgtype             = responseType,
@@ -468,7 +470,7 @@ class coap(object):
                 destPort         = srcPort,
                 msg              = response,
             )
-
+             
         except Exception as err:
             log.critical(traceback.format_exc())
 
