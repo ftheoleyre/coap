@@ -8,6 +8,7 @@ log.addHandler(NullHandler())
 
 import time
 import threading
+import string
 
 from pydispatch import dispatcher
 
@@ -19,7 +20,7 @@ class socketUdpDispatcher(socketUdp.socketUdp):
     def __init__(self,ipAddress,udpPort,callback):
         
         # log
-        log.debug('creating instance')
+        log.debug('creating UDP instance for {0}:{1}'.format(ipAddress,udpPort))
         
         # initialize the parent class
         socketUdp.socketUdp.__init__(self,ipAddress,udpPort,callback)
@@ -40,13 +41,18 @@ class socketUdpDispatcher(socketUdp.socketUdp):
     #======================== public ==========================================
     
     def sendUdp(self,destIp,destPort,msg):
-        
+        log.verbose("sendUdp() - {5} - {0} from ({1}/{2}) to ({3}/{4})".format(u.formatBuf(msg), self.ipAddress, self.udpPort, destIp, destPort, self.stats['numTx']))
+
+
+
+
         # send over dispatcher
-        dispatcher.send(
+        ret = dispatcher.send(
             signal = (destIp,destPort),
             sender = (self.ipAddress,self.udpPort),
             data   = msg
         )
+        print(ret)
         
         # update stats
         self._incrementTx()
@@ -71,8 +77,11 @@ class socketUdpDispatcher(socketUdp.socketUdp):
         timestamp = time.time()
         
         # log
-        log.debug("got {2} from {1} at {0}".format(timestamp,sender,u.formatBuf(data)))
-        
+        log.verbose("_messageNotification() - {2} from {1} at {0}".format(timestamp,sender,u.formatBuf(data)))
+        log.verbose(signal)
+        log.verbose(self)
+
+
         # call the callback
         self.callback(timestamp,sender,data)
         

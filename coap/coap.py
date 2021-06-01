@@ -48,6 +48,7 @@ class coap(object):
             callback = receiveCallback
         else:
             callback = self._receive
+            
         if testing:
             self.socketUdp        = socketUdpDispatcher(
                 ipAddress         = self.ipAddress,
@@ -346,6 +347,7 @@ class coap(object):
                         #noresponse option -> nothing to do
                         for option in options:
                             if isinstance(option, o.Noresponse):
+                                log.verbose("No response needed to this PUT CoAP packet")
                                 return
                                 
                     elif message['code']==d.METHOD_DELETE and d.METHOD_DELETE in authorizedMethods:
@@ -363,7 +365,8 @@ class coap(object):
                         raise e.coapRcInternalServerError()
 
                 #==== send back response
-
+                
+                
                 # determine type of response packet
                 if   message['type']==d.TYPE_CON:
                     responseType = d.TYPE_ACK
@@ -395,6 +398,8 @@ class coap(object):
                     securityContext  = foundContext,
                     partialIV        = requestPartialIV
                 )
+                
+                log.verbose("end of send() - send through the UDP socket")
 
                 # send
                 self.socketUdp.sendUdp(
@@ -436,7 +441,11 @@ class coap(object):
             else:
                 raise NotImplementedError()
 
+            log.verbose("end of send() - eeend")
+            
+            
         except e.coapRc as err:
+            log.verbose("end of send() - error")
 
             # log
             log.warning(err)
@@ -473,6 +482,9 @@ class coap(object):
              
         except Exception as err:
             log.critical(traceback.format_exc())
+
+        log.verbose("end of send() - udp")
+
 
     def _securityContextLookup(self, keyID, keyIDContext):
         with self.resourceLock:
