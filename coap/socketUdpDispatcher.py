@@ -52,7 +52,6 @@ class socketUdpDispatcher(socketUdp.socketUdp):
             sender = (self.ipAddress,self.udpPort),
             data   = msg
         )
-        print(ret)
         
         # update stats
         self._incrementTx()
